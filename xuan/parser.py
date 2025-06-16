@@ -132,42 +132,46 @@ class Parser:
         statements = []
         line = self.current_token.line
         column = self.current_token.column
-        
+    
         # 检查冒号
         self._consume(TokenType.COLON, "代码块需要以冒号开始")
-        
-        # 检查换行
-        if not self._check(TokenType.NEWLINE):
-            self.error("代码块需要换行")
-        else:
-            self._advance()  # 消费换行符
-        
-        # 跳过多余的换行
+    
+        # 更灵活地处理冒号后的内容
+        # 允许冒号后直接跟语句（单行模式）
+        if not self._check(TokenType.NEWLINE) and not self._check(TokenType.EOF):
+            # 单行模式：冒号后直接跟语句
+            stmt = self._parse_statement()
+            if stmt:
+                statements.append(stmt)
+            return Block(statements, line, column)
+    
+        # 多行模式处理
+        # 跳过所有换行符
         while self._check(TokenType.NEWLINE):
             self._advance()
-            
+        
         # 检查缩进
         if not self._check(TokenType.INDENT):
-            self.error("代码块需要缩进")
+            self.error("多行代码块需要缩进")
         else:
             self._advance()  # 消费缩进符
-        
+    
         # 解析代码块内的语句
         while not self._check(TokenType.DEDENT) and not self.is_at_end():
             if self._check(TokenType.NEWLINE):
                 self._advance()  # 消费换行符
                 continue
-            
+        
             stmt = self._parse_statement()
             if stmt:
                 statements.append(stmt)
-        
+    
         # 检查代码块结束
         if not self._check(TokenType.DEDENT):
             self.error("代码块需要减少缩进来结束")
         else:
             self._advance()  # 消费减缩进符
-            
+        
         return Block(statements, line, column)
     
     def _parse_function_definition(self):
