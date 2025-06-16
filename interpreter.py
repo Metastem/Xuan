@@ -319,6 +319,11 @@ class Interpreter:
         if not callable(callee):
             raise TypeError(f"{callee} 不是可调用的")
         
+        # 处理内置函数
+        if callee in [print, input, int, float, str, list, dict, len]:
+            return callee(*args, **kwargs)
+        
+        # 处理自定义函数
         return callee(self, args, **kwargs)
     
     def visit_Attribute(self, expr):
@@ -377,7 +382,9 @@ class Interpreter:
         value = None
         if expr.value:
             value = self.evaluate(expr.value)
-        self.environment.define(expr.name, value)
+        # 确保变量名是字符串
+        name = expr.name if isinstance(expr.name, str) else expr.name.name
+        self.environment.define(name, value)
         return value
     
     def visit_Identifier(self, expr):
