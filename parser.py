@@ -605,8 +605,7 @@ class Parser:
         while self._match(TokenType.EQUAL, TokenType.NOT_EQUAL,
                          TokenType.LESS, TokenType.LESS_EQUAL,
                          TokenType.GREATER, TokenType.GREATER_EQUAL,
-                         TokenType.IN, TokenType.NOT_IN,
-                         TokenType.IS, TokenType.IS_NOT):
+                         TokenType.IN):
             operator = self.previous().value
             line = self.previous().line
             column = self.previous().column
@@ -661,7 +660,7 @@ class Parser:
             return Literal(True, self.previous().line, self.previous().column)
         elif self._match(TokenType.NONE):
             return Literal(None, self.previous().line, self.previous().column)
-        elif self._match(TokenType.NUMBER, TokenType.STRING):
+        elif self._match(TokenType.INTEGER, TokenType.FLOAT, TokenType.STRING, TokenType.F_STRING):
             return Literal(self.previous().value, self.previous().line, self.previous().column)
         elif self._match(TokenType.IDENTIFIER):
             identifier = Identifier(self.previous().value, self.previous().line, self.previous().column)
@@ -710,7 +709,7 @@ class Parser:
                         if not self._match(TokenType.COMMA):
                             break
                 self._consume(TokenType.RPAREN, "期望右括号')'")
-                expr = Call(expr, args, self.previous().line, self.previous().column)
+                expr = FunctionCall(expr, args, {}, self.previous().line, self.previous().column)
             elif self._match(TokenType.DOT):
                 # 属性访问
                 name_token = self._consume(TokenType.IDENTIFIER, "期望属性名")
