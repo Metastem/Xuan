@@ -294,6 +294,16 @@ class Lexer:
         
         return tokens
     
+    def tokenize(self):
+        """返回所有的tokens列表"""
+        tokens = []
+        while self.current_char is not None:
+            token = self.get_next_token()
+            if token.type != TokenType.EOF:
+                tokens.append(token)
+        tokens.append(Token(TokenType.EOF, None))
+        return tokens
+
     def get_next_token(self):
         """获取下一个标记"""
         while self.current_char is not None:
