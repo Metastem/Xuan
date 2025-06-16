@@ -332,19 +332,19 @@ class Interpreter:
     
     def visit_Assignment(self, expr):
         """访问赋值表达式"""
-        value = self.evaluate(expr.right)
+        value = self.evaluate(expr.value)
         
-        if isinstance(expr.left, Identifier):
-            self.environment.assign(expr.left.name, value)
-        elif isinstance(expr.left, Attribute):
-            obj = self.evaluate(expr.left.value)
+        if isinstance(expr.name, Identifier):
+            self.environment.assign(expr.name.name, value)
+        elif isinstance(expr.name, Attribute):
+            obj = self.evaluate(expr.name.value)
             if isinstance(obj, XUANInstance):
-                obj.set(expr.left.attr, value)
+                obj.set(expr.name.attr, value)
             else:
                 raise TypeError("只能在实例上设置属性")
-        elif isinstance(expr.left, Subscript):
-            obj = self.evaluate(expr.left.value)
-            index = self.evaluate(expr.left.index)
+        elif isinstance(expr.name, Subscript):
+            obj = self.evaluate(expr.name.value)
+            index = self.evaluate(expr.name.index)
             obj[index] = value
         else:
             raise SyntaxError("无效的赋值目标")
