@@ -130,22 +130,44 @@ class Parser:
     def _parse_block(self):
         """解析代码块"""
         statements = []
-        line = self.previous().line
-        column = self.previous().column
+        line = self.current_token.line
+        column = self.current_token.column
         
+        # 检查冒号
         self._consume(TokenType.COLON, "代码块需要以冒号开始")
-        self._consume(TokenType.NEWLINE, "代码块需要换行")
-        self._consume(TokenType.INDENT, "代码块需要缩进")
         
+        # 检查换行
+        if not self._check(TokenType.NEWLINE):
+            self.error("代码块需要换行")
+        else:
+            self._advance()  # 消费换行符
+        
+        # 跳过多余的换行
+        while self._check(TokenType.NEWLINE):
+            self._advance()
+            
+        # 检查缩进
+        if not self._check(TokenType.INDENT):
+            self.error("代码块需要缩进")
+        else:
+            self._advance()  # 消费缩进符
+        
+        # 解析代码块内的语句
         while not self._check(TokenType.DEDENT) and not self.is_at_end():
-            if self._match(TokenType.NEWLINE):
+            if self._check(TokenType.NEWLINE):
+                self._advance()  # 消费换行符
                 continue
             
             stmt = self._parse_statement()
             if stmt:
                 statements.append(stmt)
         
-        self._consume(TokenType.DEDENT, "代码块需要减少缩进来结束")
+        # 检查代码块结束
+        if not self._check(TokenType.DEDENT):
+            self.error("代码块需要减少缩进来结束")
+        else:
+            self._advance()  # 消费减缩进符
+            
         return Block(statements, line, column)
     
     def _parse_function_definition(self):
@@ -562,7 +584,8 @@ class Parser:
             value = self._parse_assignment()  # 右结合
             
             if isinstance(expr, Identifier):
-                return Assignment(expr, value, line, column)
+                # 创建变量声明而不是赋值
+                return VariableDeclaration(expr.name, value, line, column)
             elif isinstance(expr, GetAttribute):
                 return SetAttribute(expr.object, expr.name, value, line, column)
             elif isinstance(expr, GetItem):
