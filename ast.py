@@ -78,11 +78,40 @@ class UnaryOperation(ASTNode):
 
 class Assignment(ASTNode):
     """赋值节点"""
-    def __init__(self, left, operator, right, line, column):
+    def __init__(self, name, value, line, column):
         super().__init__(line, column)
-        self.left = left
-        self.operator = operator
-        self.right = right
+        self.name = name
+        self.value = value
+
+class GetAttribute(ASTNode):
+    """属性获取节点"""
+    def __init__(self, object, name, line, column):
+        super().__init__(line, column)
+        self.object = object
+        self.name = name
+
+class SetAttribute(ASTNode):
+    """属性设置节点"""
+    def __init__(self, object, name, value, line, column):
+        super().__init__(line, column)
+        self.object = object
+        self.name = name
+        self.value = value
+
+class GetItem(ASTNode):
+    """项获取节点"""
+    def __init__(self, object, key, line, column):
+        super().__init__(line, column)
+        self.object = object
+        self.key = key
+
+class SetItem(ASTNode):
+    """项设置节点"""
+    def __init__(self, object, key, value, line, column):
+        super().__init__(line, column)
+        self.object = object
+        self.key = key
+        self.value = value
 
 class VariableDeclaration(ASTNode):
     """变量声明节点"""
