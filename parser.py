@@ -562,7 +562,7 @@ class Parser:
             value = self._parse_assignment()  # 右结合
             
             if isinstance(expr, Identifier):
-                return Assignment(expr.name, value, line, column)
+                return Assignment(expr, value, line, column)
             elif isinstance(expr, GetAttribute):
                 return SetAttribute(expr.object, expr.name, value, line, column)
             elif isinstance(expr, GetItem):
