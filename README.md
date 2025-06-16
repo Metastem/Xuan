@@ -34,7 +34,7 @@
 1. 克隆项目仓库：
 
 ```bash
-git clone https://github.com/yourusername/xuan.git
+git clone https://github.com/Metastem/xuan.git
 cd xuan
 ```
 
@@ -597,16 +597,6 @@ xuan/
 │   ├── builtins.py        # 内置函数
 │   ├── exceptions.py      # 异常定义
 │   └── cli.py             # 命令行接口
-├── examples/              # 示例程序
-│   ├── hello_world.xuan
-│   ├── fibonacci.xuan
-│   └── todo_manager.xuan
-├── tests/                # 测试文件
-│   ├── test_lexer.py
-│   ├── test_parser.py
-│   └── test_interpreter.py
-├── docs/                 # 文档
-├── setup.py             # 安装配置
 ├── requirements.txt     # 依赖要求
 ├── README.md           # 项目说明
 └── LICENSE             # 许可证
@@ -628,7 +618,7 @@ xuan/
 
 1. 克隆仓库并安装依赖：
 ```bash
-git clone https://github.com/yourusername/xuan.git
+git clone https://github.com/Metastem/xuan.git
 cd xuan
 pip install -r requirements.txt
 pip install -e .
