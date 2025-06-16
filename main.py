@@ -42,7 +42,8 @@ def run_repl():
             
             try:
                 lexer = Lexer(line)
-                parser = Parser(lexer)
+                tokens = lexer.tokenize()
+                parser = Parser(tokens)
                 program = parser.parse()
                 result = interpreter.interpret(program)
                 if result is not None:
@@ -61,7 +62,8 @@ def run_repl():
 def run(source, filename="<stdin>"):
     """执行玄语言代码"""
     lexer = Lexer(source, filename)
-    parser = Parser(lexer)
+    tokens = lexer.tokenize()
+    parser = Parser(tokens)
     interpreter = Interpreter()
     
     program = parser.parse()
