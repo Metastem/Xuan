@@ -655,13 +655,17 @@ class Parser:
     def _parse_primary(self):
         """解析基本表达式"""
         if self._match(TokenType.FALSE):
-            return Literal(False, self.previous().line, self.previous().column)
+            return BooleanLiteral(False, self.previous().line, self.previous().column)
         elif self._match(TokenType.TRUE):
-            return Literal(True, self.previous().line, self.previous().column)
+            return BooleanLiteral(True, self.previous().line, self.previous().column)
         elif self._match(TokenType.NONE):
-            return Literal(None, self.previous().line, self.previous().column)
-        elif self._match(TokenType.INTEGER, TokenType.FLOAT, TokenType.STRING, TokenType.F_STRING):
-            return Literal(self.previous().value, self.previous().line, self.previous().column)
+            return NoneLiteral(self.previous().line, self.previous().column)
+        elif self._match(TokenType.INTEGER):
+            return IntegerLiteral(self.previous().value, self.previous().line, self.previous().column)
+        elif self._match(TokenType.FLOAT):
+            return FloatLiteral(self.previous().value, self.previous().line, self.previous().column)
+        elif self._match(TokenType.STRING, TokenType.F_STRING):
+            return StringLiteral(self.previous().value, self.previous().line, self.previous().column)
         elif self._match(TokenType.IDENTIFIER):
             identifier = Identifier(self.previous().value, self.previous().line, self.previous().column)
             return self._parse_call_or_access(identifier)
