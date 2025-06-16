@@ -48,6 +48,8 @@ class TokenType(Enum):
     INTEGER = auto()      # 整数
     FLOAT = auto()        # 浮点数
     STRING = auto()       # 字符串
+    F_STRING = auto()     # 格式化字符串
+    F_STRING_START = auto() # 格式化字符串开始
     
     # 运算符
     PLUS = auto()         # +
@@ -208,8 +210,17 @@ class Lexer:
     
     def string(self):
         """处理字符串"""
-        quote = self.current_char  # 引号类型（单引号或双引号）
+        # 检查是否是格式化字符串
+        is_f_string = False
         start_column = self.column
+        
+        # 检查前一个字符是否是'f'或'F'
+        if self.pos > 0 and self.text[self.pos - 1].lower() == 'f':
+            is_f_string = True
+            # 调整列位置，因为'f'已经被处理过了
+            start_column -= 1
+        
+        quote = self.current_char  # 引号类型（单引号或双引号）
         self.advance()  # 跳过开始的引号
         
         result = ''
@@ -237,7 +248,12 @@ class Lexer:
             self.error("未闭合的字符串")
         
         self.advance()  # 跳过结束的引号
-        return Token(TokenType.STRING, result, self.line, start_column)
+        
+        # 根据是否是格式化字符串返回不同的标记类型
+        if is_f_string:
+            return Token(TokenType.F_STRING, result, self.line, start_column)
+        else:
+            return Token(TokenType.STRING, result, self.line, start_column)
     
     def identifier(self):
         """处理标识符和关键字"""
@@ -320,12 +336,22 @@ class Lexer:
             if self.current_char.isdigit():
                 return self.number()
             
-            # 处理字符串
-            if self.current_char in ('"', "'"):
+            # 处理格式化字符串和普通字符串
+            if self.current_char in ('"', "'") or (
+                self.current_char.lower() == 'f' and 
+                self.peek() in ('"', "'")
+            ):
+                # 如果是f-string
+                if self.current_char.lower() == 'f':
+                    self.advance()  # 跳过'f'字符
                 return self.string()
             
             # 处理标识符和关键字
             if self.current_char.isalpha() or self.current_char == '_' or '\u4e00' <= self.current_char <= '\u9fff':
+                # 如果是单个'f'后面不跟引号，当作普通标识符处理
+                if self.current_char.lower() == 'f' and self.peek() not in ('"', "'"):
+                    return self.identifier()
+                # 其他情况当作标识符处理
                 return self.identifier()
             
             # 处理运算符和分隔符
