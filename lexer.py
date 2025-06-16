@@ -156,8 +156,9 @@ class Lexer:
         '非': TokenType.NOT,
     }
     
-    def __init__(self, text):
+    def __init__(self, text, filename="<stdin>"):
         self.text = text
+        self.filename = filename
         self.pos = 0
         self.line = 1
         self.column = 1
