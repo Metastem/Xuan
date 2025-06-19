@@ -107,7 +107,7 @@ graph TD
     Interpreter --> Error
     Parser --> Error
     Lexer --> Error
-    end
+end
 
 ### 从源代码安装
 
