@@ -314,32 +314,38 @@ class Interpreter:
             return left // right
             
         # 处理比较运算符
-        if op == "==":
-            return "真" if left == right else "假"
-        if op == "!=":
-            return "真" if left != right else "假"
-        if op == "<":
-            return "真" if left < right else "假"
-        if op == "<=":
-            return "真" if left <= right else "假"
-        if op == ">":
-            return "真" if left > right else "假"
-        if op == ">=":
-            return "真" if left >= right else "假"
-        
-        # 处理中文比较运算符
-        if op == "等于":
-            return "真" if left == right else "假"
-        if op == "不等于":
-            return "真" if left != right else "假"
-        if op == "小于":
-            return "真" if left < right else "假"
-        if op == "小于等于":
-            return "真" if left <= right else "假"
-        if op == "大于":
-            return "真" if left > right else "假"
-        if op == "大于等于":
-            return "真" if left >= right else "假"
+        def try_compare(a, b, op_func):
+            """尝试比较不同类型的值"""
+            try:
+                return op_func(a, b)
+            except TypeError:
+                # 尝试类型转换
+                if isinstance(a, str) and isinstance(b, (int, float)):
+                    try:
+                        a_num = float(a)
+                        return op_func(a_num, b)
+                    except ValueError:
+                        pass
+                elif isinstance(a, (int, float)) and isinstance(b, str):
+                    try:
+                        b_num = float(b)
+                        return op_func(a, b_num)
+                    except ValueError:
+                        pass
+                raise  # 重新抛出原始异常
+
+        if op in ["==", "等于"]:
+            return "真" if try_compare(left, right, lambda a, b: a == b) else "假"
+        if op in ["!=", "不等于"]:
+            return "真" if try_compare(left, right, lambda a, b: a != b) else "假"
+        if op in ["<", "小于"]:
+            return "真" if try_compare(left, right, lambda a, b: a < b) else "假"
+        if op in ["<=", "小于等于"]:
+            return "真" if try_compare(left, right, lambda a, b: a <= b) else "假"
+        if op in [">", "大于"]:
+            return "真" if try_compare(left, right, lambda a, b: a > b) else "假"
+        if op in [">=", "大于等于"]:
+            return "真" if try_compare(left, right, lambda a, b: a >= b) else "假"
             
         # 处理逻辑运算符
         if op == "and":  # 只使用"and"作为与运算符
