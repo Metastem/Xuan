@@ -645,7 +645,7 @@ class Parser:
         """解析加减法表达式"""
         expr = self._parse_factor()
         
-        while self._match(TokenType.PLUS, TokenType.MINUS):
+        while self._match(TokenType.PLUS, TokenType.MINUS, TokenType.PLUS_CN, TokenType.MINUS_CN):
             operator = self.previous().value
             line = self.previous().line
             column = self.previous().column
@@ -659,7 +659,10 @@ class Parser:
         expr = self._parse_unary()
         
         while self._match(TokenType.MULTIPLY, TokenType.DIVIDE,
-                         TokenType.MODULO, TokenType.POWER):
+                         TokenType.MODULO, TokenType.POWER,
+                         TokenType.MULTIPLY_CN, TokenType.DIVIDE_CN,
+                         TokenType.MODULO_CN, TokenType.POWER_CN,
+                         TokenType.FLOOR_DIVIDE, TokenType.FLOOR_DIVIDE_CN):
             operator = self.previous().value
             line = self.previous().line
             column = self.previous().column
