@@ -604,7 +604,7 @@ class Parser:
         expr = self._parse_and()
         
         while self._match(TokenType.OR):
-            operator = self.previous().value
+            operator = "or"  # 使用统一的操作符字符串
             line = self.previous().line
             column = self.previous().column
             right = self._parse_and()
@@ -617,7 +617,7 @@ class Parser:
         expr = self._parse_comparison()
         
         while self._match(TokenType.AND):
-            operator = self.previous().value
+            operator = "and"  # 使用统一的操作符字符串
             line = self.previous().line
             column = self.previous().column
             right = self._parse_comparison()
