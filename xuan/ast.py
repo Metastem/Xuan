@@ -353,6 +353,15 @@ class Delete(ASTNode):
         super().__init__(line, column)
         self.targets = targets
 
+# 添加逻辑运算节点
+class LogicalOperation(ASTNode):
+    """逻辑运算节点"""
+    def __init__(self, left, operator, right, line, column):
+        super().__init__(line, column)
+        self.left = left
+        self.operator = operator
+        self.right = right
+
 # 添加表达式语句节点
 class ExpressionStatement(ASTNode):
     """表达式语句节点"""
