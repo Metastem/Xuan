@@ -376,7 +376,7 @@ class Interpreter:
         op = expr.operator
         
         # 短路求值
-        if op == "and" or op == "与":
+        if op == "and" or op == "与" or op == "且":
             if not self.is_truthy(left):
                 return "假"
             right = self.evaluate(expr.right)
