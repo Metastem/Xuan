@@ -164,7 +164,7 @@ class Lexer:
         '或': TokenType.OR,
         '非': TokenType.NOT,
         
-        # 中文运算符
+        # 中文算术运算符
         '加': TokenType.PLUS_CN,
         '减': TokenType.MINUS_CN,
         '乘': TokenType.MULTIPLY_CN,
@@ -172,6 +172,14 @@ class Lexer:
         '余': TokenType.MODULO_CN,
         '幂': TokenType.POWER_CN,
         '整除': TokenType.FLOOR_DIVIDE_CN,
+        
+        # 中文比较运算符
+        '大于': TokenType.GREATER,
+        '小于': TokenType.LESS,
+        '等于': TokenType.EQUAL,
+        '不等于': TokenType.NOT_EQUAL,
+        '大于等于': TokenType.GREATER_EQUAL,
+        '小于等于': TokenType.LESS_EQUAL,
     }
     
     def __init__(self, text, filename="<stdin>"):
