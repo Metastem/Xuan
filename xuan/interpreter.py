@@ -315,31 +315,37 @@ class Interpreter:
             
         # 处理比较运算符
         if op == "==":
-            return left == right
+            return "真" if left == right else "假"
         if op == "!=":
-            return left != right
+            return "真" if left != right else "假"
         if op == "<":
-            return left < right
+            return "真" if left < right else "假"
         if op == "<=":
-            return left <= right
+            return "真" if left <= right else "假"
         if op == ">":
-            return left > right
+            return "真" if left > right else "假"
         if op == ">=":
-            return left >= right
+            return "真" if left >= right else "假"
         
         # 处理中文比较运算符
         if op == "等于":
-            return left == right
+            return "真" if left == right else "假"
         if op == "不等于":
-            return left != right
+            return "真" if left != right else "假"
         if op == "小于":
-            return left < right
+            return "真" if left < right else "假"
         if op == "小于等于":
-            return left <= right
+            return "真" if left <= right else "假"
         if op == "大于":
-            return left > right
+            return "真" if left > right else "假"
         if op == "大于等于":
-            return left >= right
+            return "真" if left >= right else "假"
+            
+        # 处理逻辑运算符
+        if op == "and" or op == "与":
+            return "真" if self.is_truthy(left) and self.is_truthy(right) else "假"
+        if op == "or" or op == "或":
+            return "真" if self.is_truthy(left) or self.is_truthy(right) else "假"
         
         raise SyntaxError(f"未知的运算符: {op}")
     
@@ -354,13 +360,13 @@ class Interpreter:
         if op == "-":
             return -operand
         if op == "not":
-            return not self.is_truthy(operand)
+            return "真" if not self.is_truthy(operand) else "假"
             
         # 处理中文运算符
         if op == "负":
             return -operand
         if op == "非":
-            return not self.is_truthy(operand)
+            return "真" if not self.is_truthy(operand) else "假"
         
         raise SyntaxError(f"未知的一元运算符: {op}")
     
@@ -459,7 +465,8 @@ class Interpreter:
     
     def visit_BooleanLiteral(self, expr):
         """访问布尔字面量"""
-        return expr.value
+        # 将布尔值转换为中文
+        return "真" if expr.value else "假"
     
     def visit_NoneLiteral(self, expr):
         """访问空值字面量"""
@@ -472,6 +479,10 @@ class Interpreter:
     def is_truthy(self, value):
         """判断值的真假"""
         if value is None:
+            return False
+        if value == "真":
+            return True
+        if value == "假":
             return False
         if isinstance(value, bool):
             return value
