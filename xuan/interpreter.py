@@ -376,13 +376,13 @@ class Interpreter:
         op = expr.operator
         
         # 短路求值
-        if op == "and" or op == "与" or op == "且":
+        if op == "and":  # 统一使用"and"作为与运算符
             if not self.is_truthy(left):
                 return "假"
             right = self.evaluate(expr.right)
             return "真" if self.is_truthy(right) else "假"
         
-        if op == "or" or op == "或":
+        if op == "or":  # 统一使用"or"作为或运算符
             if self.is_truthy(left):
                 return "真"
             right = self.evaluate(expr.right)
