@@ -677,7 +677,11 @@ class Parser:
             operator = self.previous().value
             line = self.previous().line
             column = self.previous().column
-            right = self._parse_unary()
+            # 对于NOT运算符，我们需要确保它应用于整个比较表达式
+            if operator == "非":
+                right = self._parse_comparison()
+            else:
+                right = self._parse_unary()
             return UnaryOperation(operator, right, line, column)
         
         return self._parse_primary()
