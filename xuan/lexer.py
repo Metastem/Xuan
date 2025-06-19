@@ -161,6 +161,7 @@ class Lexer:
         '异步': TokenType.ASYNC,
         '等待': TokenType.AWAIT,
         '且': TokenType.AND,
+        '与': TokenType.AND,  # 添加"与"作为AND的另一个映射
         '或': TokenType.OR,
         '非': TokenType.NOT,
         
