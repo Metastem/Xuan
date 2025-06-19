@@ -342,7 +342,7 @@ class Interpreter:
             return "真" if left >= right else "假"
             
         # 处理逻辑运算符
-        if op == "and" or op == "与":
+        if op == "and":  # 只使用"and"作为与运算符
             return "真" if self.is_truthy(left) and self.is_truthy(right) else "假"
         if op == "or" or op == "或":
             return "真" if self.is_truthy(left) or self.is_truthy(right) else "假"
