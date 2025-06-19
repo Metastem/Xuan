@@ -369,6 +369,26 @@ class Interpreter:
             return "真" if not self.is_truthy(operand) else "假"
         
         raise SyntaxError(f"未知的一元运算符: {op}")
+        
+    def visit_LogicalOperation(self, expr):
+        """访问逻辑运算表达式"""
+        left = self.evaluate(expr.left)
+        op = expr.operator
+        
+        # 短路求值
+        if op == "and" or op == "与":
+            if not self.is_truthy(left):
+                return "假"
+            right = self.evaluate(expr.right)
+            return "真" if self.is_truthy(right) else "假"
+        
+        if op == "or" or op == "或":
+            if self.is_truthy(left):
+                return "真"
+            right = self.evaluate(expr.right)
+            return "真" if self.is_truthy(right) else "假"
+            
+        raise SyntaxError(f"未知的逻辑运算符: {op}")
     
     def visit_FunctionCall(self, expr):
         """访问调用表达式"""
