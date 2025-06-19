@@ -270,45 +270,99 @@ class Interpreter:
         left = self.evaluate(expr.left)
         right = self.evaluate(expr.right)
         
-        op_type = expr.operator.type
+        # 直接使用operator字符串
+        op = expr.operator
         
-        if op_type == "加":
+        # 处理标准运算符
+        if op == "+":
             return left + right
-        if op_type == "减":
+        if op == "-":
             return left - right
-        if op_type == "乘":
+        if op == "*":
             return left * right
-        if op_type == "除":
+        if op == "/":
             if right == 0:
                 raise ZeroDivisionError("除数不能为零")
             return left / right
-        if op_type == "等于":
+        if op == "%":
+            return left % right
+        if op == "**":
+            return left ** right
+        if op == "//":
+            if right == 0:
+                raise ZeroDivisionError("除数不能为零")
+            return left // right
+            
+        # 处理中文运算符
+        if op == "加":
+            return left + right
+        if op == "减":
+            return left - right
+        if op == "乘":
+            return left * right
+        if op == "除":
+            if right == 0:
+                raise ZeroDivisionError("除数不能为零")
+            return left / right
+        if op == "余":
+            return left % right
+        if op == "幂":
+            return left ** right
+        if op == "整除":
+            if right == 0:
+                raise ZeroDivisionError("除数不能为零")
+            return left // right
+            
+        # 处理比较运算符
+        if op == "==":
             return left == right
-        if op_type == "不等于":
+        if op == "!=":
             return left != right
-        if op_type == "小于":
+        if op == "<":
             return left < right
-        if op_type == "小于等于":
+        if op == "<=":
             return left <= right
-        if op_type == "大于":
+        if op == ">":
             return left > right
-        if op_type == "大于等于":
+        if op == ">=":
             return left >= right
         
-        return None
+        # 处理中文比较运算符
+        if op == "等于":
+            return left == right
+        if op == "不等于":
+            return left != right
+        if op == "小于":
+            return left < right
+        if op == "小于等于":
+            return left <= right
+        if op == "大于":
+            return left > right
+        if op == "大于等于":
+            return left >= right
+        
+        raise SyntaxError(f"未知的运算符: {op}")
     
     def visit_UnaryOperation(self, expr):
         """访问一元表达式"""
         operand = self.evaluate(expr.operand)
         
-        op_type = expr.operator.type
+        # 直接使用operator字符串
+        op = expr.operator
         
-        if op_type == "负":
+        # 处理标准运算符
+        if op == "-":
             return -operand
-        if op_type == "非":
+        if op == "not":
+            return not self.is_truthy(operand)
+            
+        # 处理中文运算符
+        if op == "负":
+            return -operand
+        if op == "非":
             return not self.is_truthy(operand)
         
-        return None
+        raise SyntaxError(f"未知的一元运算符: {op}")
     
     def visit_FunctionCall(self, expr):
         """访问调用表达式"""
