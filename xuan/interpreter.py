@@ -372,6 +372,9 @@ class Interpreter:
         if op == "负":
             return -operand
         if op == "非":
+            # 特殊处理非运算符，确保正确处理比较表达式的结果
+            if isinstance(operand, str) and operand in ["真", "假"]:
+                return "假" if operand == "真" else "真"
             return "真" if not self.is_truthy(operand) else "假"
         
         raise SyntaxError(f"未知的一元运算符: {op}")
