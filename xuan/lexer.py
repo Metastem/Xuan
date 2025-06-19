@@ -60,6 +60,15 @@ class TokenType(Enum):
     POWER = auto()        # **
     FLOOR_DIVIDE = auto() # //
     
+    # 中文运算符
+    PLUS_CN = auto()      # 加
+    MINUS_CN = auto()     # 减
+    MULTIPLY_CN = auto()  # 乘
+    DIVIDE_CN = auto()    # 除
+    MODULO_CN = auto()    # 余
+    POWER_CN = auto()     # 幂
+    FLOOR_DIVIDE_CN = auto() # 整除
+    
     # 比较运算符
     EQUAL = auto()        # ==
     NOT_EQUAL = auto()    # !=
@@ -154,6 +163,15 @@ class Lexer:
         '且': TokenType.AND,
         '或': TokenType.OR,
         '非': TokenType.NOT,
+        
+        # 中文运算符
+        '加': TokenType.PLUS_CN,
+        '减': TokenType.MINUS_CN,
+        '乘': TokenType.MULTIPLY_CN,
+        '除': TokenType.DIVIDE_CN,
+        '余': TokenType.MODULO_CN,
+        '幂': TokenType.POWER_CN,
+        '整除': TokenType.FLOOR_DIVIDE_CN,
     }
     
     def __init__(self, text, filename="<stdin>"):
