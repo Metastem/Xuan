@@ -5,10 +5,10 @@
 import os
 import sys
 import argparse
-from .lexer import Lexer
-from .parser import Parser
-from .interpreter import Interpreter
-from .exceptions import XUANError
+from xuan.lexer import Lexer
+from xuan.parser import Parser
+from xuan.interpreter import Interpreter
+from xuan.exceptions import XUANError
 
 def run_file(filename):
     """执行玄语言源文件"""
