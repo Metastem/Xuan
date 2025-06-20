@@ -388,8 +388,28 @@ class Lexer:
                 # 如果是单个'f'后面不跟引号，当作普通标识符处理
                 if self.current_char.lower() == 'f' and self.peek() not in ('"', "'"):
                     return self.identifier()
-                # 其他情况当作标识符处理
-                return self.identifier()
+                
+                # 保存当前位置
+                start_pos = self.pos
+                start_line = self.line
+                start_column = self.column
+                
+                # 收集标识符
+                result = ''
+                while self.current_char is not None and (
+                    '\u4e00' <= self.current_char <= '\u9fff' or 
+                    self.current_char.isalnum() or 
+                    self.current_char == '_'
+                ):
+                    result += self.current_char
+                    self.advance()
+                
+                # 如果是关键字，返回关键字标记
+                if result in self.KEYWORDS:
+                    return Token(self.KEYWORDS[result], result, start_line, start_column)
+                
+                # 否则返回标识符标记
+                return Token(TokenType.IDENTIFIER, result, start_line, start_column)
             
             # 处理运算符和分隔符
             if self.current_char == '+':
