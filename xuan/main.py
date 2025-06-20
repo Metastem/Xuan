@@ -36,15 +36,32 @@ def run_repl():
     
     while True:
         try:
+            lines = []
             line = input(">>> ")
             if line.strip() == "退出()":
                 break
             
+            # 收集多行输入直到语句块完成
+            while True:
+                lines.append(line)
+                source = "\n".join(lines)
+                
+                # 尝试解析，如果成功则执行，否则继续收集
+                try:
+                    lexer = Lexer(source)
+                    tokens = lexer.tokenize()
+                    parser = Parser(tokens)
+                    program = parser.parse()
+                    break  # 解析成功，退出收集循环
+                except XUANError as e:
+                    # 如果是未完成语句的错误，继续收集
+                    if "未完成" in str(e) or "期望" in str(e):
+                        line = input("... ")
+                        continue
+                    raise  # 其他错误直接抛出
+            
+            # 执行完整的程序
             try:
-                lexer = Lexer(line)
-                tokens = lexer.tokenize()
-                parser = Parser(tokens)
-                program = parser.parse()
                 result = interpreter.interpret(program)
                 if result is not None:
                     print(result)
