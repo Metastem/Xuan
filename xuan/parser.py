@@ -629,11 +629,24 @@ class Parser:
         """解析比较表达式"""
         expr = self._parse_term()
         
+        # 中文比较运算符到符号的映射
+        operator_map = {
+            "大于": ">",
+            "小于": "<",
+            "等于": "==",
+            "不等于": "!=",
+            "大于等于": ">=",
+            "小于等于": "<=",
+            "在": "in"
+        }
+        
         while self._match(TokenType.EQUAL, TokenType.NOT_EQUAL,
                          TokenType.LESS, TokenType.LESS_EQUAL,
                          TokenType.GREATER, TokenType.GREATER_EQUAL,
                          TokenType.IN):
-            operator = self.previous().value
+            token_value = self.previous().value
+            # 如果是中文比较运算符，转换为对应的符号
+            operator = operator_map.get(token_value, token_value)
             line = self.previous().line
             column = self.previous().column
             right = self._parse_term()
