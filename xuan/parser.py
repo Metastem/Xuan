@@ -709,8 +709,16 @@ class Parser:
         elif self._match(TokenType.STRING, TokenType.F_STRING):
             return StringLiteral(self.previous().value, self.previous().line, self.previous().column)
         elif self._match(TokenType.IDENTIFIER):
-            identifier = Identifier(self.previous().value, self.previous().line, self.previous().column)
-            return self._parse_call_or_access(identifier)
+            # 处理标识符
+            token = self.previous()
+            identifier = Identifier(token.value, token.line, token.column)
+            
+            # 检查是否是函数调用或属性访问
+            if self._check(TokenType.LPAREN) or self._check(TokenType.DOT) or self._check(TokenType.LBRACKET):
+                return self._parse_call_or_access(identifier)
+            
+            # 否则直接返回标识符
+            return identifier
         elif self._match(TokenType.LPAREN):
             expr = self._parse_expression()
             self._consume(TokenType.RPAREN, "期望右括号')'")
