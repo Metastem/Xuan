@@ -134,10 +134,12 @@ class Parser:
         column = self.current_token.column
     
         # 检查冒号
-        self._consume(TokenType.COLON, "代码块需要以冒号开始")
+        if not self._check(TokenType.COLON):
+            # 对于if/else等语句，可能已经消费了冒号
+            if not (self._check(TokenType.NEWLINE) or self._check(TokenType.INDENT)):
+                self._consume(TokenType.COLON, "代码块需要以冒号开始")
     
-        # 更灵活地处理冒号后的内容
-        # 允许冒号后直接跟语句（单行模式）
+        # 处理单行模式
         if not self._check(TokenType.NEWLINE) and not self._check(TokenType.EOF):
             # 单行模式：冒号后直接跟语句
             stmt = self._parse_statement()
@@ -152,7 +154,8 @@ class Parser:
         
         # 检查缩进
         if not self._check(TokenType.INDENT):
-            self.error("多行代码块需要缩进")
+            # 如果没有缩进，可能是空代码块
+            return Block([], line, column)
         else:
             self._advance()  # 消费缩进符
     
@@ -241,40 +244,29 @@ class Parser:
         line = self.previous().line
         column = self.previous().column
         
+        # 解析初始if条件
         condition = self._parse_expression()
         then_block = self._parse_block()
         
+        # 收集所有elif分支
+        elif_branches = []
+        while self._match(TokenType.ELIF):
+            elif_condition = self._parse_expression()
+            elif_then_block = self._parse_block()
+            elif_branches.append((elif_condition, elif_then_block))
+        
+        # 解析else分支
         else_block = None
         if self._match(TokenType.ELSE):
             else_block = self._parse_block()
-        elif self._match(TokenType.ELIF):
-            # 将elif转换为else if
-            elif_line = self.previous().line
-            elif_column = self.previous().column
-            elif_condition = self._parse_expression()
-            elif_then_block = self._parse_block()
-            
-            elif_else_block = None
-            if self._check(TokenType.ELSE) or self._check(TokenType.ELIF):
-                # 递归处理后续的elif/else
-                if self._match(TokenType.ELSE):
-                    elif_else_block = self._parse_block()
-                else:  # TokenType.ELIF
-                    self._advance()
-                    elif_else_block = Block(
-                        [self._parse_if_statement()],
-                        self.previous().line,
-                        self.previous().column
-                    )
-            
-            # 创建嵌套的if语句作为else块
-            else_block = Block(
-                [If(elif_condition, elif_then_block, elif_else_block, elif_line, elif_column)],
-                elif_line,
-                elif_column
-            )
         
-        return If(condition, then_block, else_block, line, column)
+        # 从最后一个elif开始构建AST
+        result = None
+        for condition, block in reversed(elif_branches):
+            result = If(condition, block, result, condition.line, condition.column)
+        
+        # 构建完整的if语句
+        return If(condition, then_block, result if elif_branches else else_block, line, column)
     
     def _parse_while_statement(self):
         """解析while语句"""
