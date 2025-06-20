@@ -491,6 +491,11 @@ class Lexer:
                 if self.current_char == '=':
                     self.advance()
                     return Token(TokenType.GREATER_EQUAL, '>=', self.line, start_column)
+                # 检查是否是中文比较运算符
+                if self.current_char == '于' and self.peek() == '等':
+                    self.advance()  # 跳过'于'
+                    self.advance()  # 跳过'等'
+                    return Token(TokenType.GREATER_EQUAL, '大于等于', self.line, start_column)
                 return Token(TokenType.GREATER, '>', self.line, start_column)
             
             if self.current_char == '(':
