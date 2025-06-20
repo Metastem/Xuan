@@ -332,6 +332,10 @@ class Lexer:
 
     def get_next_token(self):
         """获取下一个标记"""
+        # 调试输出当前字符
+        if self.current_char is not None:
+            print(f"DEBUG: Current char '{self.current_char}' at line {self.line}, column {self.column}")
+        
         while self.current_char is not None:
             
             # 处理空白字符
@@ -485,18 +489,31 @@ class Lexer:
                     return Token(TokenType.LESS_EQUAL, '<=', self.line, start_column)
                 return Token(TokenType.LESS, '<', self.line, start_column)
             
+            # 处理比较运算符
             if self.current_char == '>':
                 start_column = self.column
                 self.advance()
+                # 优先处理多字符运算符
                 if self.current_char == '=':
                     self.advance()
                     return Token(TokenType.GREATER_EQUAL, '>=', self.line, start_column)
-                # 检查是否是中文比较运算符
-                if self.current_char == '于' and self.peek() == '等':
+                elif self.current_char == '于' and self.peek() == '等':
                     self.advance()  # 跳过'于'
                     self.advance()  # 跳过'等'
                     return Token(TokenType.GREATER_EQUAL, '大于等于', self.line, start_column)
                 return Token(TokenType.GREATER, '>', self.line, start_column)
+            
+            if self.current_char == '<':
+                start_column = self.column
+                self.advance()
+                if self.current_char == '=':
+                    self.advance()
+                    return Token(TokenType.LESS_EQUAL, '<=', self.line, start_column)
+                elif self.current_char == '于' and self.peek() == '等':
+                    self.advance()  # 跳过'于'
+                    self.advance()  # 跳过'等'
+                    return Token(TokenType.LESS_EQUAL, '小于等于', self.line, start_column)
+                return Token(TokenType.LESS, '<', self.line, start_column)
             
             if self.current_char == '(':
                 start_column = self.column
