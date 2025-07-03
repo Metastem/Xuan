@@ -115,7 +115,7 @@ class TokenType(Enum):
 
 class Token:
     """标记类"""
-    def __init__(self, type, value, line, column):
+    def __init__(self, type, value, line=None, column=None):
         self.type = type
         self.value = value
         self.line = line
@@ -319,23 +319,9 @@ class Lexer:
                 self.error(f"缩进错误：当前缩进级别 {indent_level} 不匹配任何外层缩进")
         
         return tokens
-    
-    def tokenize(self):
-        """返回所有的tokens列表"""
-        tokens = []
-        while self.current_char is not None:
-            token = self.get_next_token()
-            if token.type != TokenType.EOF:
-                tokens.append(token)
-        tokens.append(Token(TokenType.EOF, None))
-        return tokens
 
     def get_next_token(self):
         """获取下一个标记"""
-        # 调试输出当前字符
-        if self.current_char is not None:
-            print(f"DEBUG: Current char '{self.current_char}' at line {self.line}, column {self.column}")
-        
         while self.current_char is not None:
             
             # 处理空白字符
@@ -353,248 +339,202 @@ class Lexer:
                 self.advance()
                 self.line += 1
                 self.column = 1
-                
-                # 跳过空行
-                line = ''
-                while self.current_char is not None and self.current_char.isspace():
-                    if self.current_char == '\n':
-                        self.line += 1
-                        self.column = 1
-                        line = ''
-                    else:
-                        line += self.current_char
-                    self.advance()
-                
-                # 如果不是空行，处理缩进
-                if self.current_char is not None:
-                    indent_tokens = self.handle_indent(line)
-                    if indent_tokens:
-                        return indent_tokens[0]
-                
                 return Token(TokenType.NEWLINE, '\n', self.line - 1, self.column)
+            
+            # 处理标识符和关键字
+            if self.current_char.isalpha() or self.current_char == '_' or '\u4e00' <= self.current_char <= '\u9fff':
+                return self.identifier()
             
             # 处理数字
             if self.current_char.isdigit():
                 return self.number()
             
-            # 处理格式化字符串和普通字符串
-            if self.current_char in ('"', "'") or (
-                self.current_char.lower() == 'f' and 
-                self.peek() in ('"', "'")
-            ):
-                # 如果是f-string
-                if self.current_char.lower() == 'f':
-                    self.advance()  # 跳过'f'字符
+            # 处理字符串
+            if self.current_char in ('"', "'"):
                 return self.string()
             
-            # 处理标识符和关键字
-            if self.current_char.isalpha() or self.current_char == '_' or '\u4e00' <= self.current_char <= '\u9fff':
-                # 如果是单个'f'后面不跟引号，当作普通标识符处理
-                if self.current_char.lower() == 'f' and self.peek() not in ('"', "'"):
-                    return self.identifier()
-                
-                # 保存当前位置
-                start_pos = self.pos
-                start_line = self.line
-                start_column = self.column
-                
-                # 收集标识符
-                result = ''
-                while self.current_char is not None and (
-                    '\u4e00' <= self.current_char <= '\u9fff' or 
-                    self.current_char.isalnum() or 
-                    self.current_char == '_'
-                ):
-                    result += self.current_char
-                    self.advance()
-                
-                # 如果是关键字，返回关键字标记
-                if result in self.KEYWORDS:
-                    return Token(self.KEYWORDS[result], result, start_line, start_column)
-                
-                # 否则返回标识符标记
-                return Token(TokenType.IDENTIFIER, result, start_line, start_column)
+            # 处理格式化字符串
+            if self.current_char.lower() == 'f' and self.peek() in ('"', "'"):
+                self.advance()  # 跳过'f'
+                return self.string()
             
             # 处理运算符和分隔符
             if self.current_char == '+':
-                start_column = self.column
                 self.advance()
                 if self.current_char == '=':
                     self.advance()
-                    return Token(TokenType.PLUS_ASSIGN, '+=', self.line, start_column)
-                return Token(TokenType.PLUS, '+', self.line, start_column)
+                    return Token(TokenType.PLUS_ASSIGN, '+=', self.line, self.column - 2)
+                return Token(TokenType.PLUS, '+', self.line, self.column - 1)
             
             if self.current_char == '-':
-                start_column = self.column
                 self.advance()
                 if self.current_char == '=':
                     self.advance()
-                    return Token(TokenType.MINUS_ASSIGN, '-=', self.line, start_column)
-                if self.current_char == '>':
+                    return Token(TokenType.MINUS_ASSIGN, '-=', self.line, self.column - 2)
+                elif self.current_char == '>':
                     self.advance()
-                    return Token(TokenType.ARROW, '->', self.line, start_column)
-                return Token(TokenType.MINUS, '-', self.line, start_column)
+                    return Token(TokenType.ARROW, '->', self.line, self.column - 2)
+                return Token(TokenType.MINUS, '-', self.line, self.column - 1)
             
             if self.current_char == '*':
-                start_column = self.column
                 self.advance()
-                if self.current_char == '*':
-                    self.advance()
-                    return Token(TokenType.POWER, '**', self.line, start_column)
                 if self.current_char == '=':
                     self.advance()
-                    return Token(TokenType.MULTIPLY_ASSIGN, '*=', self.line, start_column)
-                return Token(TokenType.MULTIPLY, '*', self.line, start_column)
+                    return Token(TokenType.MULTIPLY_ASSIGN, '*=', self.line, self.column - 2)
+                elif self.current_char == '*':
+                    self.advance()
+                    return Token(TokenType.POWER, '**', self.line, self.column - 2)
+                return Token(TokenType.MULTIPLY, '*', self.line, self.column - 1)
             
             if self.current_char == '/':
-                start_column = self.column
                 self.advance()
-                if self.current_char == '/':
-                    self.advance()
-                    return Token(TokenType.FLOOR_DIVIDE, '//', self.line, start_column)
                 if self.current_char == '=':
                     self.advance()
-                    return Token(TokenType.DIVIDE_ASSIGN, '/=', self.line, start_column)
-                return Token(TokenType.DIVIDE, '/', self.line, start_column)
+                    return Token(TokenType.DIVIDE_ASSIGN, '/=', self.line, self.column - 2)
+                elif self.current_char == '/':
+                    self.advance()
+                    return Token(TokenType.FLOOR_DIVIDE, '//', self.line, self.column - 2)
+                return Token(TokenType.DIVIDE, '/', self.line, self.column - 1)
             
             if self.current_char == '%':
-                start_column = self.column
                 self.advance()
                 if self.current_char == '=':
                     self.advance()
-                    return Token(TokenType.MODULO_ASSIGN, '%=', self.line, start_column)
-                return Token(TokenType.MODULO, '%', self.line, start_column)
+                    return Token(TokenType.MODULO_ASSIGN, '%=', self.line, self.column - 2)
+                return Token(TokenType.MODULO, '%', self.line, self.column - 1)
             
             if self.current_char == '=':
-                start_column = self.column
                 self.advance()
                 if self.current_char == '=':
                     self.advance()
-                    return Token(TokenType.EQUAL, '==', self.line, start_column)
-                return Token(TokenType.ASSIGN, '=', self.line, start_column)
+                    return Token(TokenType.EQUAL, '==', self.line, self.column - 2)
+                return Token(TokenType.ASSIGN, '=', self.line, self.column - 1)
             
             if self.current_char == '!':
-                start_column = self.column
                 self.advance()
                 if self.current_char == '=':
                     self.advance()
-                    return Token(TokenType.NOT_EQUAL, '!=', self.line, start_column)
+                    return Token(TokenType.NOT_EQUAL, '!=', self.line, self.column - 2)
                 self.error("无效的字符: '!'")
             
             if self.current_char == '<':
-                start_column = self.column
                 self.advance()
                 if self.current_char == '=':
                     self.advance()
-                    return Token(TokenType.LESS_EQUAL, '<=', self.line, start_column)
-                return Token(TokenType.LESS, '<', self.line, start_column)
+                    return Token(TokenType.LESS_EQUAL, '<=', self.line, self.column - 2)
+                return Token(TokenType.LESS, '<', self.line, self.column - 1)
             
-            # 处理比较运算符
             if self.current_char == '>':
-                start_column = self.column
-                self.advance()
-                # 优先处理多字符运算符
-                if self.current_char == '=':
-                    self.advance()
-                    return Token(TokenType.GREATER_EQUAL, '>=', self.line, start_column)
-                elif self.current_char == '于' and self.peek() == '等':
-                    self.advance()  # 跳过'于'
-                    self.advance()  # 跳过'等'
-                    return Token(TokenType.GREATER_EQUAL, '大于等于', self.line, start_column)
-                return Token(TokenType.GREATER, '>', self.line, start_column)
-            
-            if self.current_char == '<':
-                start_column = self.column
                 self.advance()
                 if self.current_char == '=':
                     self.advance()
-                    return Token(TokenType.LESS_EQUAL, '<=', self.line, start_column)
-                elif self.current_char == '于' and self.peek() == '等':
-                    self.advance()  # 跳过'于'
-                    self.advance()  # 跳过'等'
-                    return Token(TokenType.LESS_EQUAL, '小于等于', self.line, start_column)
-                return Token(TokenType.LESS, '<', self.line, start_column)
+                    return Token(TokenType.GREATER_EQUAL, '>=', self.line, self.column - 2)
+                return Token(TokenType.GREATER, '>', self.line, self.column - 1)
             
+            # 处理分隔符
             if self.current_char == '(':
-                start_column = self.column
                 self.advance()
-                return Token(TokenType.LPAREN, '(', self.line, start_column)
+                return Token(TokenType.LPAREN, '(', self.line, self.column - 1)
             
             if self.current_char == ')':
-                start_column = self.column
                 self.advance()
-                return Token(TokenType.RPAREN, ')', self.line, start_column)
+                return Token(TokenType.RPAREN, ')', self.line, self.column - 1)
             
             if self.current_char == '[':
-                start_column = self.column
                 self.advance()
-                return Token(TokenType.LBRACKET, '[', self.line, start_column)
+                return Token(TokenType.LBRACKET, '[', self.line, self.column - 1)
             
             if self.current_char == ']':
-                start_column = self.column
                 self.advance()
-                return Token(TokenType.RBRACKET, ']', self.line, start_column)
+                return Token(TokenType.RBRACKET, ']', self.line, self.column - 1)
             
             if self.current_char == '{':
-                start_column = self.column
                 self.advance()
-                return Token(TokenType.LBRACE, '{', self.line, start_column)
+                return Token(TokenType.LBRACE, '{', self.line, self.column - 1)
             
             if self.current_char == '}':
-                start_column = self.column
                 self.advance()
-                return Token(TokenType.RBRACE, '}', self.line, start_column)
+                return Token(TokenType.RBRACE, '}', self.line, self.column - 1)
             
             if self.current_char == ',':
-                start_column = self.column
                 self.advance()
-                return Token(TokenType.COMMA, ',', self.line, start_column)
+                return Token(TokenType.COMMA, ',', self.line, self.column - 1)
             
             if self.current_char == '.':
-                start_column = self.column
                 self.advance()
                 if self.current_char == '.' and self.peek() == '.':
                     self.advance()
                     self.advance()
-                    return Token(TokenType.ELLIPSIS, '...', self.line, start_column)
-                return Token(TokenType.DOT, '.', self.line, start_column)
+                    return Token(TokenType.ELLIPSIS, '...', self.line, self.column - 3)
+                return Token(TokenType.DOT, '.', self.line, self.column - 1)
             
             if self.current_char == ':':
-                start_column = self.column
                 self.advance()
-                return Token(TokenType.COLON, ':', self.line, start_column)
+                return Token(TokenType.COLON, ':', self.line, self.column - 1)
             
             if self.current_char == ';':
-                start_column = self.column
                 self.advance()
-                return Token(TokenType.SEMICOLON, ';', self.line, start_column)
+                return Token(TokenType.SEMICOLON, ';', self.line, self.column - 1)
             
             if self.current_char == '@':
-                start_column = self.column
                 self.advance()
-                return Token(TokenType.AT, '@', self.line, start_column)
+                return Token(TokenType.AT, '@', self.line, self.column - 1)
             
-            # 如果到这里还没有返回，说明遇到了无效字符
-            self.error(f"无效的字符: '{self.current_char}'")
+            # 如果到达这里，说明遇到了无法识别的字符
+            self.error(f"无法识别的字符: '{self.current_char}'")
         
-        # 处理文件结束
-        if self.pos >= len(self.text):
-            # 处理剩余的DEDENT
-            if len(self.indent_stack) > 1:
-                self.indent_stack.pop()
-                return Token(TokenType.DEDENT, 0, self.line, self.column)
-            
-            return Token(TokenType.EOF, None, self.line, self.column)
+        # 如果到达文件末尾，返回EOF标记
+        return Token(TokenType.EOF, '', self.line, self.column)
     
     def tokenize(self):
         """将整个源代码转换为标记序列"""
         tokens = []
-        token = self.get_next_token()
         
-        while token.type != TokenType.EOF:
-            tokens.append(token)
-            token = self.get_next_token()
+        # 处理源代码中的每一行
+        lines = self.text.splitlines()
+        if not lines:
+            return [Token(TokenType.EOF, '', 1, 1)]
         
-        tokens.append(token)  # 添加EOF标记
-        return tokens
+        for i, line in enumerate(lines):
+            self.line = i + 1
+            self.column = 1
             
+            # 跳过空行
+            if not line.strip():
+                tokens.append(Token(TokenType.NEWLINE, '\n', self.line, self.column))
+                continue
+            
+            # 处理缩进
+            indent_tokens = self.handle_indent(line)
+            tokens.extend(indent_tokens)
+            
+            # 设置当前行的起始位置
+            self.pos = sum(len(l) + 1 for l in lines[:i])  # +1 是为了换行符
+            if self.pos < len(self.text):
+                self.current_char = self.text[self.pos]
+            else:
+                self.current_char = None
+            
+            # 跳过行首空白
+            self.column = 1
+            while self.current_char is not None and self.current_char.isspace() and self.current_char != '\n':
+                self.advance()
+            
+            # 处理行内标记
+            while self.current_char is not None and self.current_char != '\n':
+                token = self.get_next_token()
+                if token.type != TokenType.NEWLINE:  # 避免重复添加换行标记
+                    tokens.append(token)
+            
+            # 添加换行标记
+            tokens.append(Token(TokenType.NEWLINE, '\n', self.line, self.column))
+        
+        # 处理文件末尾的缩进
+        while self.indent_stack[-1] > 0:
+            self.indent_stack.pop()
+            tokens.append(Token(TokenType.DEDENT, 0, self.line, self.column))
+        
+        # 添加EOF标记
+        tokens.append(Token(TokenType.EOF, '', self.line, self.column))
+        
+        return tokens
