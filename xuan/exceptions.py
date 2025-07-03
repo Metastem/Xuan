@@ -19,7 +19,39 @@ class XUANError(Exception):
 
 class LexerError(XUANError):
     """词法分析错误"""
-    pass
+    def __init__(self, message="", line=None, column=None, error_code="LEX001", context=None):
+        """
+        Args:
+            message (str): 错误描述
+            line (int): 错误所在行号
+            column (int): 错误所在列号
+            error_code (str): 错误代码
+            context (str): 错误上下文内容
+        """
+        self.error_code = error_code
+        self.context = context
+        super().__init__(message, line, column)
+    
+    def _format_message(self):
+        msg = f"[{self.error_code}] {self.message}"
+        if self.line is not None and self.column is not None:
+            msg = f"第{self.line}行，第{self.column}列: {msg}"
+        if self.context:
+            msg += f"\n上下文: {self.context}"
+        return msg
+
+# 词法分析常见错误代码
+LEXER_ERROR_CODES = {
+    "LEX001": "未识别的字符",
+    "LEX002": "未闭合的字符串",
+    "LEX003": "无效的数字格式",
+    "LEX004": "无效的转义序列",
+    "LEX005": "缩进错误",
+    "LEX006": "未闭合的f-string表达式",
+    "LEX007": "未匹配的大括号",
+    "LEX008": "无效的Unicode转义序列",
+    "LEX009": "无效的标识符",
+}
 
 class ParserError(XUANError):
     """语法分析错误"""
