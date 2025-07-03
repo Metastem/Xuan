@@ -48,8 +48,9 @@ class TokenType(Enum):
     INTEGER = auto()      # 整数
     FLOAT = auto()        # 浮点数
     STRING = auto()       # 字符串
-    F_STRING = auto()     # 格式化字符串
-    F_STRING_START = auto() # 格式化字符串开始
+    F_STRING = auto()         # 格式化字符串
+    F_STRING_START = auto()   # 格式化字符串开始
+    F_STRING_EXPR = auto()    # 格式化字符串中的表达式
     
     # 运算符
     PLUS = auto()         # +
@@ -174,12 +175,12 @@ class Lexer:
         '整除': TokenType.FLOOR_DIVIDE_CN,
         
         # 中文比较运算符
-        '大于': TokenType.GREATER,
-        '小于': TokenType.LESS,
-        '等于': TokenType.EQUAL,
-        '不等于': TokenType.NOT_EQUAL,
-        '大于等于': TokenType.GREATER_EQUAL,
-        '小于等于': TokenType.LESS_EQUAL,
+        '大于': TokenType.GREATER_CN,
+        '小于': TokenType.LESS_CN,
+        '等于': TokenType.EQUAL_CN,
+        '不等于': TokenType.NOT_EQUAL_CN,
+        '大于等于': TokenType.GREATER_EQUAL_CN,
+        '小于等于': TokenType.LESS_EQUAL_CN,
     }
     
     def __init__(self, text, filename="<stdin>"):
@@ -191,9 +192,34 @@ class Lexer:
         self.current_char = self.text[0] if text else None
         self.indent_stack = [0]  # 缩进栈，初始为0
     
-    def error(self, message):
-        """抛出词法错误"""
-        raise LexerError(message, self.line, self.column)
+    def error(self, message, error_code="LEX001"):
+        """抛出词法错误
+        
+        Args:
+            message (str): 错误描述
+            error_code (str): 错误代码
+        """
+        context = self._get_error_context()
+        raise LexerError(
+            message=message,
+            line=self.line,
+            column=self.column,
+            error_code=error_code,
+            context=context
+        )
+    
+    def _get_error_context(self):
+        """获取错误位置附近的代码上下文"""
+        if not hasattr(self, 'text') or not self.text:
+            return None
+        
+        start = max(0, self.pos - 20)
+        end = min(len(self.text), self.pos + 20)
+        context = self.text[start:end]
+        
+        # 标记错误位置
+        marker = ' ' * (self.pos - start) + '^'
+        return f"{context}\n{marker}"
     
     def advance(self):
         """前进一个字符"""
@@ -225,69 +251,172 @@ class Lexer:
         """处理数字"""
         result = ''
         start_column = self.column
+        dot_count = 0
         
         while self.current_char is not None and (self.current_char.isdigit() or self.current_char == '.'):
+            if self.current_char == '.':
+                dot_count += 1
+                if dot_count > 1:
+                    self.error("无效的数字格式: 多个小数点", "LEX003")
             result += self.current_char
             self.advance()
         
-        if '.' in result:
-            return Token(TokenType.FLOAT, float(result), self.line, start_column)
-        else:
-            return Token(TokenType.INTEGER, int(result), self.line, start_column)
+        # 检查数字是否以小数点结尾
+        if result.endswith('.'):
+            self.error("无效的数字格式: 小数点后缺少数字", "LEX003")
+        
+        try:
+            if '.' in result:
+                return Token(TokenType.FLOAT, float(result), self.line, start_column)
+            else:
+                return Token(TokenType.INTEGER, int(result), self.line, start_column)
+        except ValueError:
+            self.error("无效的数字格式", "LEX003")
     
     def string(self):
-        """处理字符串"""
-        # 检查是否是格式化字符串
+        """处理字符串和f-string"""
         is_f_string = False
         start_column = self.column
         
-        # 检查前一个字符是否是'f'或'F'
+        # 检查是否是f-string
         if self.pos > 0 and self.text[self.pos - 1].lower() == 'f':
             is_f_string = True
-            # 调整列位置，因为'f'已经被处理过了
             start_column -= 1
         
-        quote = self.current_char  # 引号类型（单引号或双引号）
-        self.advance()  # 跳过开始的引号
+        quote = self.current_char
+        self.advance()  # 跳过引号
         
-        result = ''
+        if is_f_string:
+            return self.process_f_string(quote, start_column)
+        else:
+            return self.process_normal_string(quote, start_column)
+    
+    def process_normal_string(self, quote, start_column):
+        """处理普通字符串"""
+        result = []
         while self.current_char is not None and self.current_char != quote:
-            if self.current_char == '\\':  # 处理转义字符
+            if self.current_char == '\\':
                 self.advance()
                 if self.current_char == 'n':
-                    result += '\n'
+                    result.append('\n')
                 elif self.current_char == 't':
-                    result += '\t'
+                    result.append('\t')
                 elif self.current_char == 'r':
-                    result += '\r'
+                    result.append('\r')
                 elif self.current_char == '\\':
-                    result += '\\'
+                    result.append('\\')
                 elif self.current_char == quote:
-                    result += quote
+                    result.append(quote)
+                elif self.current_char == 'u':  # Unicode转义
+                    self.advance()
+                    hex_str = self.text[self.pos:self.pos+4]
+                    if len(hex_str) != 4 or not all(c in '0123456789abcdefABCDEF' for c in hex_str):
+                        self.error("无效的Unicode转义序列", "LEX008")
+                    result.append(chr(int(hex_str, 16)))
+                    self.advance(3)  # 已经前进1个字符，再前进3个
                 else:
-                    result += '\\' + self.current_char
+                    result.append('\\' + self.current_char)
             else:
-                result += self.current_char
-            
+                result.append(self.current_char)
             self.advance()
         
         if self.current_char is None:
-            self.error("未闭合的字符串")
+            self.error("未闭合的字符串", "LEX002")
         
-        self.advance()  # 跳过结束的引号
+        self.advance()  # 跳过结束引号
+        return Token(TokenType.STRING, ''.join(result), self.line, start_column)
+    
+    def process_f_string(self, quote, start_column):
+        """处理f-string"""
+        parts = []
+        current_part = []
+        brace_level = 0
         
-        # 根据是否是格式化字符串返回不同的标记类型
-        if is_f_string:
-            return Token(TokenType.F_STRING, result, self.line, start_column)
-        else:
-            return Token(TokenType.STRING, result, self.line, start_column)
+        while self.current_char is not None and self.current_char != quote:
+            if self.current_char == '{':
+                if self.peek() == '{':  # 转义{
+                    current_part.append('{')
+                    self.advance(2)
+                    continue
+                
+                if brace_level == 0 and current_part:
+                    parts.append(('text', ''.join(current_part)))
+                    current_part = []
+                
+                brace_level += 1
+                self.advance()
+                
+                if brace_level == 1:
+                    # 开始处理表达式
+                    expr_start = self.pos
+                    while self.current_char is not None and (brace_level > 0 or self.current_char != '}'):
+                        if self.current_char == '{':
+                            brace_level += 1
+                        elif self.current_char == '}':
+                            brace_level -= 1
+                        self.advance()
+                    
+                    if brace_level > 0:
+                        self.error("未闭合的f-string表达式", "LEX006")
+                    
+                    expr = self.text[expr_start:self.pos-1].strip()
+                    if expr:
+                        parts.append(('expr', expr))
+                    continue
+            
+            elif self.current_char == '}':
+                if self.peek() == '}':  # 转义}
+                    current_part.append('}')
+                    self.advance(2)
+                    continue
+                
+                self.error("未匹配的'}'")
+            
+            elif self.current_char == '\\':
+                self.advance()
+                if self.current_char == 'n':
+                    current_part.append('\n')
+                elif self.current_char == 't':
+                    current_part.append('\t')
+                elif self.current_char == 'r':
+                    current_part.append('\r')
+                elif self.current_char == '\\':
+                    current_part.append('\\')
+                elif self.current_char == quote:
+                    current_part.append(quote)
+                else:
+                    current_part.append('\\' + self.current_char)
+                self.advance()
+                continue
+            
+            current_part.append(self.current_char)
+            self.advance()
+        
+        if self.current_char is None:
+            self.error("未闭合的f-string")
+        
+        if current_part:
+            parts.append(('text', ''.join(current_part)))
+        
+        self.advance()  # 跳过结束引号
+        
+        # 生成f-string标记
+        return Token(TokenType.F_STRING, parts, self.line, start_column)
     
     def identifier(self):
         """处理标识符和关键字"""
         result = ''
         start_column = self.column
         
-        # 标识符可以包含中文字符、字母、数字和下划线，但不能以数字开头
+        # 检查首字符是否有效
+        if self.current_char is not None and not (
+            '\u4e00' <= self.current_char <= '\u9fff' or  # 中文字符
+            self.current_char.isalpha() or 
+            self.current_char == '_'
+        ):
+            self.error("无效的标识符: 必须以中文、字母或下划线开头", "LEX004")
+        
+        # 标识符可以包含中文字符、字母、数字和下划线
         while self.current_char is not None and (
             '\u4e00' <= self.current_char <= '\u9fff' or  # 中文字符范围
             self.current_char.isalnum() or 
@@ -295,6 +424,10 @@ class Lexer:
         ):
             result += self.current_char
             self.advance()
+        
+        # 检查标识符长度
+        if len(result) > 255:
+            self.error("无效的标识符: 长度超过255个字符", "LEX004")
         
         # 检查是否是关键字
         token_type = self.KEYWORDS.get(result, TokenType.IDENTIFIER)
@@ -339,6 +472,14 @@ class Lexer:
                 self.advance()
                 self.line += 1
                 self.column = 1
+                # 检查缩进是否一致
+                if self.current_char == ' ':
+                    spaces = 0
+                    while self.current_char == ' ':
+                        spaces += 1
+                        self.advance()
+                    if spaces % 4 != 0:
+                        self.error("缩进错误: 必须使用4个空格的倍数", "LEX007")
                 return Token(TokenType.NEWLINE, '\n', self.line - 1, self.column)
             
             # 处理标识符和关键字
@@ -415,7 +556,7 @@ class Lexer:
                 if self.current_char == '=':
                     self.advance()
                     return Token(TokenType.NOT_EQUAL, '!=', self.line, self.column - 2)
-                self.error("无效的字符: '!'")
+                self.error("无效的运算符: '!'", "LEX005")
             
             if self.current_char == '<':
                 self.advance()
